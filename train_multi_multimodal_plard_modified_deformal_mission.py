@@ -1,4 +1,4 @@
-#使用C4(改自C3的模块)来单次融合，加任务驱动的模型训练代码
+#三次融合加plard+分离卷积+任务分支的模型。详情参看yaml
 import argparse
 import logging
 import math
@@ -24,7 +24,7 @@ from tqdm import tqdm
 
 import test_multi_multimodal_mission as test_multi # import test.py to get mAP after each epoch
 from models.experimental import attempt_load
-from models.yolo_gy_c4_mission import Model
+from models.yolo_multimodal_plard_modified_deformal_mission import Model
 from utils.autoanchor import check_anchors
 from utils.datasets_multimodal import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \

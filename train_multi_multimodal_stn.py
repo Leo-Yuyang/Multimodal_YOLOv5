@@ -1,4 +1,4 @@
-#使用C4(改自C3的模块)来单次融合，加任务驱动的模型训练代码
+#三次融合加stn+mission的模型。详情参看yaml。此模型不收敛
 import argparse
 import logging
 import math
@@ -22,16 +22,16 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import test_multi_multimodal_mission as test_multi # import test.py to get mAP after each epoch
+import test_multi  # import test.py to get mAP after each epoch
 from models.experimental import attempt_load
-from models.yolo_gy_c4_mission import Model
+from models.yolo_multimodal_stn import Model
 from utils.autoanchor import check_anchors
-from utils.datasets_multimodal import create_dataloader
+from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     fitness, strip_optimizer, get_latest_run, check_dataset, check_file, check_git_status, check_img_size, \
     check_requirements, print_mutation, set_logging, one_cycle, colorstr
 from utils.google_utils import attempt_download
-from utils.loss_multimodal import ComputeLoss
+from utils.loss import ComputeLoss
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
 from utils.torch_utils import ModelEMA, select_device, intersect_dicts, torch_distributed_zero_first, is_parallel
 from utils.wandb_logging.wandb_utils import WandbLogger, resume_and_get_id
@@ -353,7 +353,7 @@ def train(hyp, opt, device, tb_writer=None):
         # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
         # dataset.mosaic_border = [b - imgsz, -b]  # height, width borders
 
-        mloss = torch.zeros(5, device=device)  # mean losses
+        mloss = torch.zeros(4, device=device)  # mean losses
         if rank != -1:
             dataloader.sampler.set_epoch(epoch)
         pbar = enumerate(dataloader)
@@ -363,7 +363,7 @@ def train(hyp, opt, device, tb_writer=None):
         optimizer.zero_grad()
 
         print(pbar.__len__())
-        for i, (imgs, targets, paths, _ ,thermal_img,day_or_night) in pbar:  # batch -------------------------------------------------------------
+        for i, (imgs, targets, paths, _ ,thermal_img) in pbar:  # batch -------------------------------------------------------------
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device, non_blocking=True).float() / 255.0  # uint8 to float32, 0-255 to 0.0-1.0
             thermal_img = thermal_img.to(device, non_blocking=True).float() / 255.0
@@ -400,8 +400,8 @@ def train(hyp, opt, device, tb_writer=None):
 
             # Forward
             with amp.autocast(enabled=cuda):
-                pred,day_or_night_pred = model(input_data,Tag=False)  # forward
-                loss, loss_items = compute_loss(pred, targets.to(device),day_or_night.to(device),day_or_night_pred.to(device))  # loss scaled by batch_size
+                pred = model(input_data,Tag=False)  # forward
+                loss, loss_items = compute_loss(pred, targets.to(device))  # loss scaled by batch_size
                 if rank != -1:
                     loss *= opt.world_size  # gradient averaged between devices in DDP mode
                 if opt.quad:
@@ -422,7 +422,7 @@ def train(hyp, opt, device, tb_writer=None):
             if rank in [-1, 0]:
                 mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
                 mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
-                s = ('%10s' * 2 + '%10.4g' * 7) % (
+                s = ('%10s' * 2 + '%10.4g' * 6) % (
                     '%g/%g' % (epoch, epochs - 1), mem, *mloss, targets.shape[0], imgs.shape[-1])
                 pbar.set_description(s)
 
