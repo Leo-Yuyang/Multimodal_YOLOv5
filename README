@@ -1,9 +1,0 @@
-1.在Multimodal_YOLOv5下有以train_multi_*.py命名的若干脚本，为训练脚本；在models文件夹下面有以yolo_*.py命名的若干脚本；也有以yolo5s_*.yaml命名的配置文件。这三个文件为一组，一一对应，也就是当需要新建模型的时候，需要新建一个train_multi_*.py、yolo_*.py，yolo5s_*.yaml文件，然后按以下示例进行调用：
-python train_multi_multimodal_plard_deformal.py --data data/kaist_thermal_RGB.yaml  --cfg models/yolov5s_multimodal_plard_deformal.yaml --epoch 80
-其中yolo_*.py并没有出现在以上示例中，而是需要在train_multi_*.py脚本中引入yolo_*.py
-2.在对本套代码进行修改时，主要在models文件夹下面的common.py中新建自定义类，然后在编写yaml文件的时候调用所定义的类。此外yolo_*.py内的parse_model部分也需要将自定义的类名加入，否则parse model过程将报错。
-3.训练和模型脚本的命名是任意的，无需遵守任何规范，一般来说我是对三个脚本的*处统一命名，方便区分和调用。
-4.对于测试，有两个测试脚本分别适用于不同的情况。test_multi.py适用于不加任务分支的情况，test_multi_multimodal_mission适用于加任务分支的情况。测试脚本的调用示例在测试脚本末尾有给出，此处不再赘述。任务分支需要读取标签的白天和夜晚信息并计算损失，在测试时也需要读取标签的日夜信息，因此需要使用test_multi_multimodal_mission.py来进行测试。
-5.utils中，datasets_gy.py是用于读取热图像和RGB图像的数据集，而datasets_multimodal.py是既要读取热图像和RGB图像，又要读取白天、夜晚图像用于任务分支的实现。
-6.想要具体了解一组代码（一个训练脚本，一个以yolo_*.py命名的模型脚本，一个.yaml配置文件），应从配置文件入手，对照着common.py查看各个模块的操作计算和功能即可。
-7.我之前实现的代码中，凡是名字中含有mission的脚本，均为加了任务分支的模型；凡是不含有mission的，都是未添加任务分支的模型。
